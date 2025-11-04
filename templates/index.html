@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gerador de QRCode</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="container">
+    <div class="qr-generator">
+      <h1>Gerador de QRCode</h1>
+
+      <form id="qrForm" oninput="updatePreview()">
+        <div class="input-group">
+          <input 
+            type="text" 
+            id="url" 
+            name="url" 
+            placeholder="Digite o link do site" 
+            required
+          >
+        </div>
+
+        <div class="color-section">
+          <label for="fill_color">Cor do QR Code:</label>
+          <div class="color-picker">
+            <input type="color" id="fill_color" name="fill_color" value="#000000" oninput="updateColorPreview('fill_preview', this.value)">
+            <div id="fill_preview" class="color-preview"></div>
+          </div>
+        </div>
+
+        <div class="color-section">
+          <label for="bg_color">Cor de Fundo:</label>
+          <div class="color-picker">
+            <input type="color" id="bg_color" name="bg_color" value="#ffffff" oninput="updateColorPreview('bg_preview', this.value)">
+            <div id="bg_preview" class="color-preview"></div>
+          </div>
+        </div>
+
+        <div class="checkbox-container">
+          <input type="checkbox" id="transparent" name="transparent" onchange="toggleBackgroundPicker(); updatePreview();">
+          <label for="transparent">Fundo transparente</label>
+        </div>
+
+        <button type="button" onclick="downloadQR()">Baixar QR Code</button>
+      </form>
+    </div>
+
+    <div class="qr-result">
+      <h3>Pré-visualização:</h3>
+      <div class="preview-box">
+        <img id="qrImage" src="{{ url_for('static', filename='qrcodes/' + qr_image) }}" alt="QR Code">
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function updateColorPreview(id, color) {
+      document.getElementById(id).style.backgroundColor = color;
+    }
+
+    function toggleBackgroundPicker() {
+      const transparent = document.getElementById('transparent').checked;
+      const bgColorInput = document.getElementById('bg_color');
+      const bgPreview = document.getElementById('bg_preview');
+      bgColorInput.disabled = transparent;
+      bgPreview.style.opacity = transparent ? '0.3' : '1';
+    }
+
+    async function updatePreview() {
+      const data = {
+        url: document.getElementById('url').value,
+        fill_color: document.getElementById('fill_color').value,
+        bg_color: document.getElementById('bg_color').value,
+        transparent: document.getElementById('transparent').checked
+      };
+
+      const response = await fetch('/preview', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      });
+
+      const result = await response.json();
+      document.getElementById('qrImage').src = result.qr_image + '?t=' + new Date().getTime();
+    }
+
+    function downloadQR() {
+      const url = document.getElementById('url').value.trim();
+
+      if (!url) {
+        alert('Por favor, insira um link válido antes de baixar o QR Code.');
+        return;
+      }
+
+      window.location.href = '/download/preview.png';
+    }
+
+    window.onload = updatePreview;
+  </script>
+</body>
+</html>
