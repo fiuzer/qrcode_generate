@@ -12,7 +12,7 @@ os.makedirs(QR_DIR, exist_ok=True)
 
 @app.route("/")
 def index():
-    return render_template("index.html", qr_image="default.png")  # imagem inicial
+    return render_template("index.html", qr_image="preview.png")  # imagem inicial
 
 
 @app.route("/preview", methods=["POST"])
