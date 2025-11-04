@@ -20,7 +20,7 @@ O sistema é totalmente responsivo, moderno e permite escolher cores, fundo tran
 
 1. **Entrada de URL personalizada**  
    - O usuário digita o link que deseja transformar em QR Code.  
-   - Caso nenhum link seja informado, o QR Code padrão aponta para `[https://bravus.com.br](https://www.bravuscompany.com/)`.
+   - Caso nenhum link seja informado, o QR Code padrão aponta para [Bravus Company](https://www.bravuscompany.com/)
 
 2. **Customização de cores**  
    - Cor do QR Code (foreground).  
