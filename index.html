@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cobrança Pix</title>
+<style>
+  :root {
+    --papel: #f2f5f2;
+    --folha: #ffffff;
+    --tinta: #14231f;
+    --tinta-suave: #4d5f59;
+    --linha: #d3dbd6;
+    --pix: #0f7d70;
+    --pix-escuro: #0a5f55;
+    --erro: #b3261e;
+    --fonte: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-tema="claro"]) {
+      --papel: #0f1a17;
+      --folha: #172622;
+      --tinta: #e6efeb;
+      --tinta-suave: #9db1aa;
+      --linha: #2b3d37;
+      --pix: #3fc4b2;
+      --pix-escuro: #7fe0d2;
+      --erro: #ff8a80;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--papel);
+    color: var(--tinta);
+    font-family: var(--fonte);
+    line-height: 1.5;
+  }
+
+  main {
+    max-width: 980px;
+    margin: 0 auto;
+    padding: 28px 18px 48px;
+  }
+
+  h1 {
+    margin: 0 0 4px;
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .sub {
+    margin: 0 0 24px;
+    color: var(--tinta-suave);
+    max-width: 60ch;
+  }
+
+  .layout {
+    display: grid;
+    gap: 22px;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: start;
+  }
+  @media (min-width: 820px) {
+    .layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  }
+
+  /* ---------- formulário ---------- */
+  form { display: grid; gap: 18px; }
+
+  label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 600;
+    font-size: 0.95rem;
+  }
+  .dica {
+    display: block;
+    margin-top: 5px;
+    color: var(--tinta-suave);
+    font-size: 0.85rem;
+  }
+
+  input[type="text"] {
+    width: 100%;
+    padding: 12px 14px;
+    font: inherit;
+    color: var(--tinta);
+    background: var(--folha);
+    border: 1.5px solid var(--linha);
+    border-radius: 8px;
+  }
+  input[type="text"]:focus-visible,
+  button:focus-visible,
+  summary:focus-visible,
+  a:focus-visible {
+    outline: 3px solid var(--pix);
+    outline-offset: 2px;
+  }
+
+  .valor-linha {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 14px;
+    background: var(--folha);
+    border: 1.5px solid var(--linha);
+    border-radius: 8px;
+  }
+  .valor-linha:focus-within { border-color: var(--pix); }
+  .valor-linha span {
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: var(--tinta-suave);
+  }
+  .valor-linha input {
+    border: 0;
+    padding: 6px 0;
+    font-size: 2.1rem;
+    font-weight: 700;
+    background: transparent;
+    outline: none;
+  }
+  .valor-linha input:focus-visible { outline: none; }
+
+  details {
+    border-top: 1px solid var(--linha);
+    padding-top: 14px;
+  }
+  summary {
+    cursor: pointer;
+    font-weight: 600;
+    list-style-position: inside;
+  }
+  .campos-loja { display: grid; gap: 14px; margin-top: 14px; }
+
+  .botao {
+    appearance: none;
+    padding: 14px 18px;
+    font: inherit;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+    background: var(--pix);
+    border: 0;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .botao:hover { background: var(--pix-escuro); }
+  .botao:disabled { opacity: 0.6; cursor: default; }
+  :root[data-tema="escuro"] .botao { color: #06201c; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-tema="claro"]) .botao { color: #06201c; }
+  }
+
+  .erro {
+    margin: 0;
+    padding: 10px 12px;
+    color: var(--erro);
+    border-left: 4px solid var(--erro);
+    background: color-mix(in srgb, var(--erro) 8%, transparent);
+    border-radius: 0 6px 6px 0;
+    font-weight: 600;
+  }
+  .erro[hidden] { display: none; }
+
+  /* ---------- resultado (formato de comprovante) ---------- */
+  .comprovante {
+    background: var(--folha);
+    border: 1.5px solid var(--linha);
+    border-radius: 10px;
+    padding: 22px 20px;
+    position: relative;
+  }
+  .comprovante::before,
+  .comprovante::after {
+    content: "";
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    border-top: 2px dashed var(--linha);
+  }
+  .comprovante::before { top: 10px; }
+  .comprovante::after { bottom: 10px; }
+  .comprovante > * { position: relative; }
+  .comprovante { padding-top: 30px; padding-bottom: 30px; }
+
+  .vazio {
+    margin: 0;
+    color: var(--tinta-suave);
+    text-align: center;
+    padding: 40px 10px;
+  }
+
+  .resultado[hidden], .vazio[hidden] { display: none; }
+
+  .total {
+    margin: 0;
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+  }
+  .total-nome {
+    margin: 2px 0 14px;
+    text-align: center;
+    color: var(--tinta-suave);
+    font-size: 0.95rem;
+  }
+
+  .qr {
+    display: block;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto 16px;
+    aspect-ratio: 1 / 1;
+    background: #fff;
+    border-radius: 6px;
+    image-rendering: pixelated;
+  }
+
+  .codigo {
+    width: 100%;
+    height: 7.5em;
+    padding: 10px;
+    font-family: var(--mono);
+    font-size: 0.8rem;
+    color: var(--tinta);
+    background: var(--papel);
+    border: 1.5px solid var(--linha);
+    border-radius: 8px;
+    resize: none;
+    word-break: break-all;
+  }
+
+  .acoes {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 12px;
+  }
+  .acoes .botao, .acoes .link {
+    flex: 1 1 140px;
+    text-align: center;
+  }
+  .link {
+    display: inline-block;
+    padding: 14px 18px;
+    font-weight: 700;
+    color: var(--pix-escuro);
+    text-decoration: none;
+    border: 1.5px solid var(--pix);
+    border-radius: 8px;
+  }
+  .link:hover { background: color-mix(in srgb, var(--pix) 10%, transparent); }
+  button.link {
+    appearance: none;
+    background: transparent;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  [hidden] { display: none !important; }
+
+  .envio {
+    margin-top: 22px;
+    padding-top: 16px;
+    border-top: 1px solid var(--linha);
+  }
+
+  .status {
+    min-height: 1.4em;
+    margin: 10px 0 0;
+    text-align: center;
+    color: var(--pix-escuro);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Cobrança Pix</h1>
+  <p class="sub">Digite o valor e gere o QR Code e o código para copiar e colar. Os dados da loja ficam salvos neste navegador.</p>
+
+  <div class="layout">
+    <form id="formulario" novalidate>
+      <div>
+        <label for="valor">Valor da cobrança</label>
+        <div class="valor-linha">
+          <span>R$</span>
+          <input type="text" id="valor" inputmode="decimal" autocomplete="off" placeholder="0,00" aria-describedby="dica-valor">
+        </div>
+        <span class="dica" id="dica-valor">Use vírgula para os centavos. Deixe em branco para gerar um QR em que o cliente digita o valor.</span>
+      </div>
+
+      <details id="dados-loja">
+        <summary>Dados da loja</summary>
+        <div class="campos-loja">
+          <div>
+            <label for="chave">Chave Pix</label>
+            <input type="text" id="chave" autocomplete="off" spellcheck="false">
+            <span class="dica">Chave aleatória, e-mail, CPF/CNPJ (só números) ou telefone com +55 e DDD.</span>
+          </div>
+          <div>
+            <label for="nome">Nome do recebedor</label>
+            <input type="text" id="nome" maxlength="25" autocomplete="off">
+            <span class="dica">Até 25 caracteres. Os acentos são removidos.</span>
+          </div>
+          <div>
+            <label for="cidade">Cidade</label>
+            <input type="text" id="cidade" maxlength="15" autocomplete="off">
+            <span class="dica">Até 15 caracteres.</span>
+          </div>
+        </div>
+      </details>
+
+      <p class="erro" id="erro" role="alert" hidden></p>
+      <button type="submit" class="botao" id="gerar">Gerar Pix</button>
+    </form>
+
+    <section class="comprovante" aria-live="polite">
+      <p class="vazio" id="vazio">O QR Code e o código aparecem aqui depois de gerar o Pix.</p>
+
+      <div class="resultado" id="resultado" hidden>
+        <p class="total" id="total"></p>
+        <p class="total-nome" id="total-nome"></p>
+        <img class="qr" id="qr" alt="QR Code do Pix">
+        <textarea class="codigo" id="codigo" readonly aria-label="Pix copia e cola"></textarea>
+        <div class="acoes">
+          <button type="button" class="botao" id="copiar">Copiar código</button>
+          <a class="link" id="baixar" download="pix.png">Baixar QR Code</a>
+        </div>
+
+        <div class="envio">
+          <label for="whats">WhatsApp do cliente (opcional)</label>
+          <input type="text" id="whats" inputmode="tel" autocomplete="off" placeholder="(11) 91234-5678">
+          <div class="acoes">
+            <a class="link" id="whatsapp" href="https://wa.me/" target="_blank" rel="noopener">Enviar código no WhatsApp</a>
+            <button type="button" class="link" id="compartilhar" hidden>Compartilhar QR Code</button>
+          </div>
+          <span class="dica">O WhatsApp abre com o código copia e cola pronto para enviar. A imagem do QR Code não vai junto: baixe e anexe, ou use o botão de compartilhar quando ele aparecer.</span>
+        </div>
+
+        <p class="status" id="status"></p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const CAMPOS_LOJA = ["chave", "nome", "cidade"];
+
+  function carregarDadosSalvos() {
+    try {
+      for (const c of CAMPOS_LOJA) {
+        const v = localStorage.getItem("pix_" + c);
+        if (v) $(c).value = v;
+      }
+    } catch (e) { /* armazenamento indisponível: segue sem salvar */ }
+    // Se os dados da loja já estão preenchidos, deixa a seção fechada.
+    const completo = CAMPOS_LOJA.every((c) => $(c).value.trim());
+    $("dados-loja").open = !completo;
+  }
+
+  function salvarDados() {
+    try {
+      for (const c of CAMPOS_LOJA) localStorage.setItem("pix_" + c, $(c).value.trim());
+    } catch (e) { /* sem problema */ }
+  }
+
+  function mostrarErro(msg) {
+    const el = $("erro");
+    el.textContent = msg || "";
+    el.hidden = !msg;
+  }
+
+  function formatarReais(texto) {
+    const n = parseFloat(texto);
+    return isNaN(n) ? "" : n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  }
+
+  $("formulario").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    mostrarErro("");
+    $("status").textContent = "";
+
+    const corpo = {
+      chave: $("chave").value,
+      nome: $("nome").value,
+      cidade: $("cidade").value,
+      valor: $("valor").value,
+    };
+
+    if (!corpo.chave.trim() || !corpo.nome.trim() || !corpo.cidade.trim()) {
+      $("dados-loja").open = true;
+      mostrarErro("Preencha a chave Pix, o nome e a cidade em \u201cDados da loja\u201d.");
+      return;
+    }
+
+    const botao = $("gerar");
+    botao.disabled = true;
+    try {
+      const resp = await fetch("/api/gerar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(corpo),
+      });
+      const dados = await resp.json();
+      if (!resp.ok) {
+        mostrarErro(dados.erro || "Não foi possível gerar o Pix.");
+        return;
+      }
+
+      salvarDados();
+      $("qr").src = dados.qr;
+      $("codigo").value = dados.codigo;
+      $("baixar").href = dados.qr;
+
+      $("total").textContent = dados.valor ? formatarReais(dados.valor) : "Valor livre";
+      $("total-nome").textContent = corpo.nome.trim();
+
+      $("vazio").hidden = true;
+      $("resultado").hidden = false;
+    } catch (e) {
+      mostrarErro("Não consegui falar com o servidor. Confira se o programa Python está rodando.");
+    } finally {
+      botao.disabled = false;
+    }
+  });
+
+  $("copiar").addEventListener("click", async () => {
+    const texto = $("codigo").value;
+    try {
+      await navigator.clipboard.writeText(texto);
+    } catch (e) {
+      $("codigo").select();
+      document.execCommand("copy");
+    }
+    $("status").textContent = "Código copiado.";
+  });
+
+  // ---------- envio para o cliente ----------
+
+  // Deixa só os dígitos e acrescenta o código do Brasil (55) quando faltar.
+  function telefoneParaWhatsApp(texto) {
+    const digitos = texto.replace(/\D/g, "");
+    if (!digitos) return "";
+    return digitos.length <= 11 ? "55" + digitos : digitos;
+  }
+
+  // O WhatsApp recebe só o código copia e cola, para o cliente copiar direto.
+  $("whatsapp").addEventListener("click", (ev) => {
+    ev.preventDefault();
+    const codigo = $("codigo").value;
+    if (!codigo) return;
+    const telefone = telefoneParaWhatsApp($("whats").value);
+    const url = "https://wa.me/" + telefone + "?text=" + encodeURIComponent(codigo);
+    window.open(url, "_blank", "noopener");
+  });
+
+  // Compartilhamento nativo (celular): permite escolher Instagram, WhatsApp etc.
+  // Só aparece se o navegador suportar enviar arquivos.
+  async function qrComoArquivo() {
+    const blob = await (await fetch($("qr").src)).blob();
+    return new File([blob], "pix.png", { type: "image/png" });
+  }
+
+  async function prepararCompartilhamento() {
+    if (!navigator.share || !navigator.canShare) return;
+    try {
+      const arquivo = new File([""], "teste.png", { type: "image/png" });
+      if (navigator.canShare({ files: [arquivo] })) $("compartilhar").hidden = false;
+    } catch (e) { /* sem suporte: o botão continua escondido */ }
+  }
+
+  $("compartilhar").addEventListener("click", async () => {
+    try {
+      const arquivo = await qrComoArquivo();
+      await navigator.share({ files: [arquivo], text: "Pix para " + $("total-nome").textContent });
+    } catch (e) {
+      if (e.name !== "AbortError") $("status").textContent = "Não consegui compartilhar. Baixe o QR Code e envie pelo app.";
+    }
+  });
+
+  carregarDadosSalvos();
+  prepararCompartilhamento();
+</script>
+</body>
+</html>
