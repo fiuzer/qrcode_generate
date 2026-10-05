@@ -10,6 +10,8 @@ Como rodar:
 O formato do código é o BR Code, do Manual de Padrões para Iniciação do Pix
 (Banco Central). Cada campo é: ID (2 dígitos) + tamanho (2 dígitos) + valor.
 """
+
+import os
 import re
 import unicodedata
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
@@ -25,6 +27,7 @@ app = Flask(__name__)
 # ---------------------------------------------------------------------------
 # Montagem do código Pix
 # ---------------------------------------------------------------------------
+
 
 def campo(id_campo: str, valor: str) -> str:
     """Monta um campo: ID + tamanho com 2 dígitos + valor."""
@@ -95,11 +98,11 @@ def gerar_payload(chave: str, nome: str, cidade: str, valor: str | None = None) 
     conta = campo("00", "br.gov.bcb.pix") + campo("01", chave)
 
     partes = [
-        campo("00", "01"),    # versão do formato
-        campo("01", "11"),    # 11 = QR estático (pode ser pago mais de uma vez)
+        campo("00", "01"),  # versão do formato
+        campo("01", "11"),  # 11 = QR estático (pode ser pago mais de uma vez)
         campo("26", conta),
         campo("52", "0000"),  # categoria do comerciante (não informada)
-        campo("53", "986"),   # moeda: real
+        campo("53", "986"),  # moeda: real
     ]
     if valor:
         partes.append(campo("54", formatar_valor(valor)))
@@ -126,6 +129,7 @@ def autoteste() -> None:
 # ---------------------------------------------------------------------------
 # Rotas web
 # ---------------------------------------------------------------------------
+
 
 @app.get("/")
 def pagina():
@@ -156,6 +160,5 @@ def api_gerar():
 if __name__ == "__main__":
     autoteste()
     print("Autoteste do Pix: OK")
-    # 127.0.0.1 = só este computador acessa. Para abrir pelo celular na mesma rede,
-    # troque por host="0.0.0.0" (só faça isso em rede de confiança).
-    app.run(host="127.0.0.1", port=5000, debug=False)
+
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=False)
